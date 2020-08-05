@@ -1,0 +1,26 @@
+h2 {
+  -webkit-user-select: none;
+}
+
+body {
+  text-align: center;
+  overflow: hidden;
+}
+
+.instructions {
+  padding: 320px;
+}
+.game {
+  padding: 5%;
+  padding-left: 320px;
+}
+
+.gridElement {
+  border-color: darkgrey;
+  border-width: 1px;
+  border-radius: 2px;
+  border-style: solid;
+  margin: 5%;
+  width: 50px;
+  height: 50px !important;
+}
