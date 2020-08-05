@@ -1,0 +1,12 @@
+version: "3.7"
+services:
+  web:
+    image: node:14
+    command: sh -c "yarn install --immutable --production=false && yarn start"
+    user: node
+    stdin_open: true
+    working_dir: /src
+    ports:
+      - 80:3000
+    volumes:
+      - $PWD/:/src
