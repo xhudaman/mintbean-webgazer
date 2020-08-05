@@ -1,15 +1,29 @@
 webgazer.showPredictionPoints(true);
 webgazer.setRegression("ridge");
 
+const getEmpty = () => {
+  const empty = document.createElement("div");
+  empty.classList.add("emptyCell");
+
+  return empty;
+};
+
 const initialiseGame = () => {
+  const gameElement = document.querySelector(".game");
+  if (gameElement) {
+    document.querySelector(".container").removeChild(gameElement);
+  }
   window.score = 0;
 
   window.grid = [];
 
+  window.mouseOverElement = null;
+  window.overlapping = { isOverlapping: false, element: null };
+
   for (let i = 0; i < 4; i++) {
     window.grid[i] = [];
     for (let j = 0; j < 4; j++) {
-      window.grid[i][j] = j + 1;
+      window.grid[i][j] = "";
     }
   }
 
@@ -24,6 +38,17 @@ const initialiseGame = () => {
       column.classList.add("col");
       column.classList.add("gridElement");
       column.innerHTML = item;
+
+      column.onmouseover = ({ target }) => {
+        if (target === window.mouseOverElement) {
+          return;
+        }
+        window.mouseOverElement = target;
+      };
+
+      const empty = getEmpty();
+
+      column.appendChild(empty);
       row.appendChild(column);
     });
 
@@ -38,7 +63,12 @@ const initialiseGame = () => {
   timerElement.innerHTML = `Time Remaining: ${window.timeLeft / 1000}`;
   game.appendChild(timerElement);
 
-  window.setInterval(() => {
+  const scoreElement = document.createElement("div");
+  scoreElement.classList.add("score");
+  scoreElement.innerHTML = `Score: ${window.score}`;
+  game.appendChild(scoreElement);
+
+  window.intervalId = window.setInterval(() => {
     window.timeLeft -= 1000;
     timerElement.innerHTML = `Time Remaining: ${window.timeLeft / 1000}`;
   }, 1000);
@@ -72,13 +102,44 @@ calDot("1%", "50%");
 calDot("1%", "0px");
 calDot("50%", "50%");
 
-const handleButtonClick = ({ target }) => {
-  window.score += 1;
-  target.parentNode.removeChile(target);
+const removeButton = () => {
+  const button = document.querySelector(".gameButton");
+  parent = button.parentNode;
+  parent.removeChild(button);
+  parent.appendChild(getEmpty());
 };
 
-const getButton = () => {
-  return "<button class=`btn btn-success` onclick='handleButtonClick'>Click Me!</button>";
+const getButton = element => {
+  if (document.querySelector(".gameButton")) {
+    return;
+  }
+  const gridElements = document.querySelectorAll(".gridElement");
+
+  const button = document.createElement("button");
+  button.classList.add("gameButton");
+  button.classList.add("btn");
+  button.classList.add("btn-warning");
+  button.style.width = "100%";
+  button.style.height = "100%";
+  button.innerHTML = "Click Me!";
+
+  button.onclick = ({ target }) => {
+    if (
+      target.parentNode === window.eyetrackingElement &&
+      target === window.mouseOverElement
+    ) {
+      window.score += 1;
+      document.querySelector(".score").innerHTML = `Score: ${window.score}`;
+      removeButton();
+    }
+  };
+
+  gridElements[element].removeChild(
+    gridElements[element].querySelector(".emptyCell")
+  );
+  gridElements[element].appendChild(button);
+
+  window.setTimeout(removeButton, Math.round(Math.random() * 3000 + 1000));
 };
 
 function ready(fn) {
@@ -89,25 +150,42 @@ function ready(fn) {
   }
 }
 
+const isOverlapping = data => {
+  const elements = document.querySelectorAll(".gridElement");
+  elements.forEach(element => {
+    let bounds;
+    bounds = element.getBoundingClientRect();
+    if (
+      data.x >= bounds.left &&
+      data.x <= bounds.right &&
+      data.y >= bounds.top &&
+      data.y <= bounds.bottom
+    ) {
+      window.eyetrackingElement = element;
+    }
+  });
+};
+
 ready(() => {
-  let start = false;
+  let gameStart = false;
   webgazer
     .setGazeListener(function(data, elapsedTime) {
       if (data == null) {
         return;
       }
-      if (start) {
-        const element = {
-          x: Math.round(Math.random() * 3),
-          y: Math.round(Math.random() * 3)
-        };
-        window.grid[element.x][element.y].innerHTML = getButton();
-        console.log("placing button!", element);
+      if (gameStart) {
+        isOverlapping(data);
+        const element = Math.round(Math.random() * 15);
+        getButton(element);
+        if (window.timeLeft <= 0) {
+          gameStart = false;
+          window.clearInterval(window.intervalId);
+        }
       }
     })
     .begin();
   document.getElementById("start").onclick = function(e) {
-    start = true;
+    gameStart = true;
     document.querySelector(".instructions").hidden = true;
     document.querySelectorAll(".calDot").forEach(dot => (dot.hidden = true));
     initialiseGame();
